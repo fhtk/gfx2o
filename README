@@ -1,0 +1,15 @@
+*****
+
+gfx2o™
+
+Created by Alexander Nicholi
+Copyright © 2019-2020 Aquefir.
+Released under MPL 2.0.
+
+*****
+
+This tool converts graphical sources into GBA-compatible binaries in object
+file format, ready for linking. It uses metadata in the file’s extensions to
+discern the desired output properties, and resolves any directory hierarchy
+as well as the data type into the symbol name for namespacing. Run
+‘gfx2o --help’ for details.

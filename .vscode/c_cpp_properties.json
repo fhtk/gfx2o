@@ -1,0 +1,21 @@
+{
+	"configurations": [
+		{
+			"name": "Linux",
+			"includePath": [
+				"${workspaceFolder}/include",
+				"${workspaceFolder}/src",
+				"/usr/lib/glib-2.0/include",
+				"/usr/include/glib-2.0"
+			],
+			"defines": [
+				"__VSCODE_INTELLISENSE__"
+			],
+			"compilerPath": "/usr/bin/gcc",
+			"cStandard": "c89",
+			"cppStandard": "c++11",
+			"intelliSenseMode": "gcc-x64"
+		}
+	],
+	"version": 4
+}

@@ -1,0 +1,19 @@
+This file contains the project’s copypastable boilerplate comment headers.
+
+Boilerplate for C-like languages:
+
+/****************************************************************************\
+ *                                  gfx2o™                                  *
+ *                                                                          *
+ *                         Copyright © 2020 Aquefir                         *
+ *                           Released under MPL2.                           *
+\****************************************************************************/
+
+Hash-based boilerplate (Python, POSIX shell, Makefile):
+
+##############################################################################
+##                                  gfx2o™                                  ##
+##                                                                          ##
+##                         Copyright © 2020 Aquefir                         ##
+##                           Released under MPL2.                           ##
+##############################################################################
