@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 /data
+/gfx2o
 
 *.o
 *.obj
