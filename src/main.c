@@ -10,7 +10,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static const char* helptxt = "PNG graphics to object code converter\n\nUsage:\n    \n    gfx2obj <input> [output]\n    Takes a PNG file <input>, runs it through grit, tags it with\n    the necessary symbols, and outputs an object code file.\n\ngfx2obj takes all of its metadata hints from the file\nextension provided. It uses this format (regex):\n\n    \\.[148](tn?|b)\\.(il?)?(ml?)?(pl?([0-9]{1,3})?)?\\.png$\n\nThe bpp portion specifies its bits-per-pixel, 4 or 8.\nThe next portion specifies what form the image takes on the GBA:\ntile or bitmap based. If \"tn\" is used, no tile reduction is done.\nThe next part specifies what kind of outputs to emit (i for\nimage/tileset, m for tilemap, and p for palette), and whether to\ncompress each output (l suffix, using LZ77). The optional numeric\nspecifies exactly how many colours the palette should have, instead\nof the maximum for the given bit depth.\n";
+static const char* helptxt = "PNG graphics to object code converter\n\nUsage:\n    \n    gfx2obj <input> [output]\n    Takes a PNG file <input>, runs it through grit, tags it with\n    the necessary symbols, and outputs an object code file.\n\ngfx2obj takes all of its metadata hints from the file\nextension provided. It uses this format (regex):\n\n    \\.[148](tn?|b)\\.(il?)?(ml?)?(pl?([0-9]{1,3})?)?\\.png$\n\nThe bpp portion specifies its bits-per-pixel, 4 or 8.\nThe next portion specifies what form the image takes on the GBA:\n";
+static const char* helptxt2 = "tile or bitmap based. If \"tn\" is used, no tile reduction is done.\nThe next part specifies what kind of outputs to emit (i for\nimage/tileset, m for tilemap, and p for palette), and whether to\ncompress each output (l suffix, using LZ77). The optional numeric\nspecifies exactly how many colours the palette should have, instead\nof the maximum for the given bit depth.\n";
 
 enum
 {
@@ -21,16 +22,16 @@ enum
 
 struct gfxprops
 {
-	guint8 img : 1;
-	guint8 img_lz : 1;
-	guint8 map : 1;
-	guint8 map_lz : 1;
-	guint8 pal : 1;
-	guint8 pal_lz : 1;
-	guint8 reduce : 1;
-	guint8 tile : 1;
-	guint8 palsz;
-	guint8 bpp : 2;
+	guint img : 1;
+	guint img_lz : 1;
+	guint map : 1;
+	guint map_lz : 1;
+	guint pal : 1;
+	guint pal_lz : 1;
+	guint reduce : 1;
+	guint tile : 1;
+	guint palsz;
+	guint bpp : 2;
 };
 
 static gboolean parse_ext( const gchar* fname, struct gfxprops* o, GError** e )
@@ -176,6 +177,8 @@ static gboolean parse_ext( const gchar* fname, struct gfxprops* o, GError** e )
 	{
 		out.reduce = 0;
 	}
+
+	return FALSE;
 }
 
 static const char** mk_gritflags( struct gfxprops props )
@@ -187,6 +190,7 @@ static const char** mk_gritflags( struct gfxprops props )
 	size_t i, j;
 
 	astr = NULL;
+	i = 0;
 
 	if(props.img)
 	{
@@ -349,6 +353,7 @@ int main( int ac, char* av[] )
 	if( ac <= 1 || (ac == 2 && (!strcmp( av[1], "--help") || !strcmp( av[1], "-h"))))
 	{
 		printf( helptxt );
+		printf( helptxt2 );
 
 		return 0;
 	}
