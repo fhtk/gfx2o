@@ -13,6 +13,7 @@ endif
 ## UNAME -> host
 ## TP    -> target platform
 ## TC    -> toolchain
+## TROOT -> target sysroot (include, lib, etc.)
 
 UNAME := $(shell uname -s)
 # User can specify TP=Win32 at the command line
@@ -32,6 +33,23 @@ ifneq ($(strip $(TC)),llvm)
 $(error Invalid toolchain specified. Linux supports either llvm or gnu)
 endif # $(TC) llvm
 endif # $(TC) gnu
+endif # $(UNAME)
+
+# Initialise $(TROOT)
+ifeq ($(strip $(UNAME)),Darwin)
+ifeq ($(strip $(TP)),Win32)
+TROOT := /usr/local/i686-w64-mingw32
+else ifeq ($(strip $(TC)),llvm)
+TROOT := /usr/local/opt/llvm
+else
+TROOT := /usr
+endif # $(TP)
+else ifeq ($(strip $(UNAME)),Linux)
+ifeq ($(strip $(TP)),Win32)
+TROOT := /usr/i686-w64-mingw32
+else
+TROOT := /usr
+endif # $(TP)
 endif # $(UNAME)
 
 ## Specify the default host variables
@@ -103,7 +121,7 @@ SO.DARWIN := dylib
 SO.LINUX  := so
 SO.WIN32  := dll
 
-CFLAGS.COMMON          := -O2 -pipe
+CFLAGS.COMMON          := -pipe
 CFLAGS.GCOMMON         := -fPIC -ansi -Wpedantic -x c -frandom-seed=69420
 CFLAGS.GCOMMON.DEBUG   := -O0 -g3 -Wall -Wpedantic
 CFLAGS.GCOMMON.RELEASE := -O2 -w
@@ -143,13 +161,13 @@ CXXFLAGS.LINUX  := -march=sandybridge -mtune=skylake
 CXXFLAGS.WIN32  := -march=sandybridge -mtune=skylake
 
 LDFLAGS := -fPIE
-ifeq ($(strip $(TC)),llvm)
-LDFLAGS += -fprofile-arcs -ftest-coverage
-else ifeq ($(strip $(TC)),xcode)
-LDFLAGS += -fprofile-arcs -ftest-coverage
-else
-LDFLAGS += -fprofile-instr-generate -fcoverage-mapping
-endif
+#ifeq ($(strip $(TC)),llvm)
+#LDFLAGS += -fprofile-arcs -ftest-coverage
+#else ifeq ($(strip $(TC)),xcode)
+#LDFLAGS += -fprofile-arcs -ftest-coverage
+#else
+#LDFLAGS += -Wl,-fprofile-instr-generate -Wl,-fcoverage-mapping
+#endif
 
 ## Resolve the correct host-target suffixes
 ##

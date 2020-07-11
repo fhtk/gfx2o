@@ -17,13 +17,13 @@ AFILE   :=
 
 # space-separated path list for #includes
 # <system> includes
-INCLUDES :=
+INCLUDES := include $(TROOT)/include/glib-2.0 $(TROOT)/lib/glib-2.0/include
 # "local" includes
 INCLUDEL := src
 
 # space-separated library name list
 LIBS      := glib-2.0
-LIBDIRS   :=
+LIBDIRS   := $(TROOT)/lib
 
 # ‘3P’ are in-tree 3rd-party dependencies
 # 3PLIBDIR is the base directory
@@ -35,7 +35,8 @@ LIBDIRS   :=
 FWORKS :=
 
 # sources
-CFILES    :=
+CFILES    := \
+	src/main.c
 HFILES    :=
 CPPFILES  :=
 HPPFILES  :=

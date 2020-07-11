@@ -82,7 +82,7 @@ ifneq ($(CC),tcc)
 release: CFLAGS += $(CFLAGS.GCOMMON) $(CFLAGS.GCOMMON.RELEASE)
 endif # tcc
 release: CXXFLAGS += $(CXXFLAGS.COMMON) $(CXXFLAGS.COMMON.RELEASE)
-release: REALSTRIP := $(STRIP) ;
+release: REALSTRIP := $(STRIP)
 release: $(TARGETS)
 
 ## Sanity check build
