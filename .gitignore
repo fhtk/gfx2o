@@ -2,6 +2,8 @@
 
 /data
 /gfx2o
+/3rdparty/*
+!/3rdparty/README
 
 *.o
 *.obj

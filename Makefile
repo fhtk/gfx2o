@@ -17,27 +17,29 @@ AFILE   :=
 
 # space-separated path list for #includes
 # <system> includes
-INCLUDES := include $(TROOT)/include/glib-2.0 $(TROOT)/lib/glib-2.0/include
+INCLUDES := include
 # "local" includes
 INCLUDEL := src
 
 # space-separated library name list
-LIBS      := glib-2.0
-LIBDIRS   := $(TROOT)/lib
+LIBS      :=
+LIBDIRS   :=
 
 # ‘3P’ are in-tree 3rd-party dependencies
 # 3PLIBDIR is the base directory
 # 3PLIBS is the folder names in the base directory for each library
 3PLIBDIR := 3rdparty
-3PLIBS   :=
+3PLIBS   := uni
 
 # frameworks (macOS target only)
 FWORKS :=
 
 # sources
 CFILES    := \
+	src/excall.c \
 	src/main.c
-HFILES    :=
+HFILES    := \
+	src/excall.h
 CPPFILES  :=
 HPPFILES  :=
 
