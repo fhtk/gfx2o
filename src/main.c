@@ -185,43 +185,55 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 static char** mkgritflags( struct gfxprops props, const char* oname )
 {
 	struct uni_arr* flags;
+	const char* temp;
 
 	flags = uni_arr_init( 0 );
 
 	if( props.img )
 	{
-		uni_arr_app( flags, uni_strdup( "-g" ) );
+		temp = uni_strdup( "-g" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( props.img_lz ? "-gzl" : "-gz!" );
 		uni_arr_app(
-		   flags, uni_strdup( props.img_lz ? "-gzl" : "-gz!" ) );
-		uni_arr_app( flags, uni_strdup( props.tile ? "-gt" : "-gb" ) );
-		uni_arr_app( flags,
-		   uni_strdup( props.bpp == BPP_1
+		   flags, &temp );
+		temp = uni_strdup( props.tile ? "-gt" : "-gb" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( props.bpp == BPP_1
 		         ? "-gB1"
-		         : props.bpp == BPP_4 ? "-gB4" : "-gB8" ) );
+		         : props.bpp == BPP_4 ? "-gB4" : "-gB8" );
+		uni_arr_app( flags,
+		   &temp );
 	}
 	else
 	{
-		uni_arr_app( flags, uni_strdup( "-g!" ) );
+		temp = uni_strdup( "-g!" );
+		uni_arr_app( flags, &temp );
 	}
 
 	if( props.map )
 	{
-		uni_arr_app( flags, uni_strdup( "-m" ) );
+		temp = uni_strdup( "-m" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( props.map_lz ? "-mzl" : "-mz!" );
 		uni_arr_app(
-		   flags, uni_strdup( props.map_lz ? "-mzl" : "-mz!" ) );
+		   flags, &temp );
+		temp = uni_strdup( props.reduce ? "-mRtf" : "-mR!" );
 		uni_arr_app(
-		   flags, uni_strdup( props.reduce ? "-mRtf" : "-mR!" ) );
+		   flags, &temp );
 	}
 	else
 	{
-		uni_arr_app( flags, uni_strdup( "-m!" ) );
+		temp = uni_strdup( "-m!" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( props.pal_lz ? "-pzl" : "-pz!" );
 		uni_arr_app(
-		   flags, uni_strdup( props.pal_lz ? "-pzl" : "-pz!" ) );
+		   flags, &temp );
 	}
 
 	if( props.pal )
 	{
-		uni_arr_app( flags, uni_strdup( "-p" ) );
+		temp = uni_strdup( "-p" );
+		uni_arr_app( flags, &temp );
 
 		if( props.palsz > 0 )
 		{
@@ -256,24 +268,29 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 				   ( props.palsz % 10 ) + 0x30 );
 			}
 
-			uni_arr_app( flags, uni_strdup( tmp ) );
+			temp = uni_strdup( tmp );
+			uni_arr_app( flags, &temp );
 			uni_free( tmp );
 		}
 		else
 		{
-			uni_arr_app( flags,
-			   uni_strdup( props.bpp == BPP_8
+			temp = uni_strdup( props.bpp == BPP_8
 			         ? "-pn256"
-			         : props.bpp == BPP_4 ? "-pn16" : "-pn2" ) );
+			         : props.bpp == BPP_4 ? "-pn16" : "-pn2" );
+			uni_arr_app( flags,
+			   &temp );
 		}
 	}
 	else
 	{
-		uni_arr_app( flags, uni_strdup( "-p!" ) );
+		temp = uni_strdup( "-p!" );
+		uni_arr_app( flags, &temp );
 	}
 
-	uni_arr_app( flags, uni_strdup( "-ftb" ) );
-	uni_arr_app( flags, uni_strdup( "-fh!" ) );
+	temp = uni_strdup( "-ftb" );
+	uni_arr_app( flags, &temp );
+	temp = uni_strdup( "-fh!" );
+	uni_arr_app( flags, &temp );
 
 	{
 		struct uni_str* str;
@@ -284,10 +301,14 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 		made = uni_str_make( str );
 		uni_str_fini( str );
 		/* this alloc now belongs to flags */
-		uni_arr_app( flags, made );
+		uni_arr_app( flags, &made );
 	}
 
-	uni_arr_prep( flags, uni_strdup( "grit" ) );
+	temp = uni_strdup( "grit" );
+	uni_arr_prep( flags, &temp );
+
+	temp = NULL;
+	uni_arr_app( flags, &temp );
 
 	{
 		char** ret;
@@ -299,108 +320,215 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 	}
 }
 
+const char* bin2asmcall( const char* file, const char* sym, const char* midsuf )
+{
+	struct uni_str* str;
+	struct uni_arr* arr;
+	const char* temp;
+	const char* ret;
+	char* const* args;
+
+	arr = uni_arr_init( 0 );
+
+	temp = uni_strdup( "bin2asm" );
+	uni_arr_app( arr, &temp );
+
+	str = uni_str_init( file );
+	uni_str_app( str, midsuf );
+	uni_str_app( str, ".bin" );
+
+	temp = uni_str_make( str );
+	uni_arr_app( arr, &temp );
+	uni_str_fini( str );
+
+	str = uni_str_init( file );
+	uni_str_app( str, midsuf );
+	uni_str_app( str, ".s" );
+
+	temp = uni_str_make( str );
+	ret = uni_strdup( temp );
+	uni_arr_app( arr, &temp );
+	uni_str_fini( str );
+
+	temp = uni_strdup( "-s" );
+	uni_arr_app( arr, &temp );
+
+	temp = uni_strdup( sym );
+	uni_arr_app( arr, &temp );
+
+	temp = NULL;
+	uni_arr_app( arr, &temp );
+
+	args = uni_arr_make( arr );
+	uni_arr_fini( arr );
+
+	excall( "bin2asm", args );
+
+	uni_strfreev( (char**)args );
+
+	return ret;
+}
+
+#define ENSURE(_cnd, _msg) \
+	do{if(_cnd){}else{fprintf(stderr,"%s\n",(_msg));return 127;}}while(0)
+
 int main( int ac, const char* av[] )
 {
-	char** tmpstrv;
-	char** gritflags;
-	char* name;
-	char* symbol;
-	char* tmpstr;
-	char* tmpstr2;
-	char* tmpfpath;
+	const char* iname;
+	const char* oname;
+	const char* temp;
 	struct gfxprops props;
-	u32 tmpsz, i;
-	int pid;
-	struct uni_string* name_in;
-	ptri name_insz;
-	const char* cwd = getcwd( NULL, 0 );
+	const char* const cwd = getcwd( NULL, 0 );
 
-	if( cwd == NULL )
-	{
-		fprintf( stderr, "Cannot get current working directory.\n" );
-
-		return 2;
-	}
+	ENSURE( cwd != NULL, "Cannot get current working directory" );
 
 	if( ac <= 1 ||
 	   ( ac == 2 &&
 	      ( uni_strequ( av[1], "--help" ) ||
 	         uni_strequ( av[1], "-h" ) ) ) )
 	{
-		printf( helptxt );
-		printf( helptxt2 );
+		printf( "%s%s", helptxt, helptxt2 );
 
 		return 0;
 	}
 
-	if( uni_strequ( av[1], "-" ) )
+	ENSURE( !uni_strequ( av[1], "-" ), "Cannot read from standard input" );
+	ENSURE( uni_strsuf( av[1], ".png" ), "Input must be a PNG image" );
+
+	/* resolve the symbolic path from given input */
+	if( uni_strstr( av[1], cwd ) == NULL )
 	{
-		fprintf( stderr, "Cannot read from standard input!\n" );
+		char** tmp;
+		ENSURE( uni_strpre( av[1], "data/" ), "Current working directory is not present in path and the path given\ndoes not start with 'data/' (cf. ADP 1). Cannot deduce the\nsymbol name." );
 
-		return 2;
-	}
-
-	if( !uni_strsuf( av[1], ".png" ) )
-	{
-		fprintf( stderr, "The file passed is not a PNG image.\n" );
-
-		return 2;
-	}
-
-	if( uni_strrstr( av[1], (const char*)cwd ) == NULL )
-	{
-		if( !uni_strpre( av[1], "data/" ) )
-		{
-			fprintf( stderr,
-			   "Current working directory is not present in path and the path given\ndoes not start with 'data/' (cf. slick/fsschema). Cannot deduce the\nsymbol name. Exiting...\n" );
-
-			return 2;
-		}
-
-		tmpstrv = uni_strsplit( av[1], "data/", 2 );
-		name    = uni_strdup( tmpstrv[1] );
-		uni_strfreev( tmpstrv );
+		tmp = uni_strsplit( av[1], "data/", 2 );
+		ENSURE( uni_strlenv( tmp ) == 2, "Invalid input file path" );
+		iname = uni_strdup( tmp[1] );
+		uni_strfreev( tmp );
 	}
 	else
 	{
-		tmpstrv = uni_strsplit( av[1], (const char*)cwd, 2 );
-		name    = uni_strdup( tmpstrv[1] );
-		uni_strfreev( tmpstrv );
+		char** tmp;
 
-		if( uni_strpre( (const char*)name, "data/" ) )
+		tmp = uni_strsplit( av[1], cwd, 2 );
+		ENSURE( uni_strlenv( tmp ) == 2, "Invalid input file path" );
+		iname = uni_strdup( tmp[1] );
+		uni_strfreev( tmp );
+
+		if(uni_strpre( iname, "data/" ))
 		{
-			tmpstrv =
-			   uni_strsplit( (const char*)name, "data/", 2 );
-			uni_free( name );
-			name = uni_strdup( tmpstrv[1] );
-			uni_strfreev( tmpstrv );
+			tmp = uni_strsplit( iname, "data/", 2 );
+			uni_free( (char*)iname );
+			ENSURE( uni_strlenv( tmp ) == 2, "Invalid input file path" );
+			iname = uni_strdup( tmp[1] );
+			uni_strfreev( tmp );
 		}
 	}
 
-	/* create the argv[] to pass to grit */
-	gritflags = mk_gritflags( props, (const char*)name );
-
-	/* TODO: transform the .png into the desired type suffix for
-	 * mangledeggs */
-	name_in   = uni_str_init( (const char*)name );
-	name_insz = uni_str_getsz( name_in );
-
-	if( excall( "grit", gritflags ) )
+	/* resolve the output props */
 	{
-		uni_strfreev( tmpstrv );
+		int r;
 
-		return 2;
+		r = parse_ext( iname, &props );
+
+#define EXT_ERR(_msg) \
+	do{fprintf(stderr, "Bad file extension: %s\n", (_msg));return 127;}while(0)
+
+		switch( r )
+		{
+		case 0:
+			break;
+		case ERR_PARSE_EXT_TOO_FEW_DOTS:
+			EXT_ERR( "Too few dots for metadata" );
+		case ERR_PARSE_EXT_INVALID_OUT_TYPES:
+			EXT_ERR( "invalid output types" );
+		case ERR_PARSE_EXT_INVALID_GFX_FORM:
+			EXT_ERR( "ill-defined graphics form" );
+		case ERR_PARSE_EXT_INVALID_BPP:
+			EXT_ERR( "bad BPP (must be 1, 4 or 8)" );
+		default:
+			EXT_ERR( "unknown error" );
+		}
+#undef EXT_ERR
 	}
 
-	if( props.img )
+	/* make the grit flags and execute the call */
 	{
-		struct rangep r  = { 0, name_insz - 4 };
-		const char* nama = uni_str_mkslice( name_in, r );
+		char* const* gritopts;
+		struct uni_str* tmpstr;
+		const char* temp2;
 
-		tmpstrv = uni_strsplit( nama, "/", 2 );
+		oname = uni_strdup( tmpnam( NULL ) );
+
+		tmpstr = uni_str_init( oname );
+		uni_str_app( tmpstr, ".bin" );
+		temp2 = uni_str_make( tmpstr );
+		uni_str_fini( tmpstr );
+
+		gritopts = mkgritflags( props, temp2 );
+		uni_free( (char*)temp2 );
+		excall( "grit", gritopts );
 	}
 
-	uni_strfreev( tmpstrv );
+	/* mangle the symbols and convert the binary file to assembly */
+	{
+		const char* temp2;
+		const char** temparr;
+		struct uni_arr* sfiles;
+
+		temparr = (const char**)uni_strsplit( iname, "/", -1 );
+		sfiles = uni_arr_init( 0 );
+
+		if(props.img)
+		{
+			eg_mangle( temparr, props.img_lz ? "imgl" : "img", &temp );
+			temp2 = bin2asmcall( oname, temp, ".img" );
+			uni_arr_app( sfiles, &temp2 );
+			uni_free( (char*)temp );
+		}
+
+		if(props.map)
+		{
+			eg_mangle( temparr, props.map_lz ? "mapl" : "map", &temp );
+			temp2 = bin2asmcall( oname, temp, ".map" );
+			uni_arr_app( sfiles, &temp2 );
+			uni_free( (char*)temp );
+		}
+
+		if(props.pal)
+		{
+			eg_mangle( temparr, props.pal_lz ? "pall" : "pal", &temp );
+			temp2 = bin2asmcall( oname, temp, ".pal" );
+			uni_arr_app( sfiles, &temp2 );
+			uni_free( (char*)temp );
+		}
+
+		/* call the assembler */
+		{
+			struct uni_arr* args;
+			struct uni_arr* temparr2;
+			char* const* argv;
+
+			temparr2 = uni_arr_init( 0 );
+			temp2 = uni_strdup( "arm-none-eabi-as" );
+			uni_arr_app( temparr2, &temp2 );
+			temp2 = uni_strdup( "-mcpu=arm7tdmi" );
+			uni_arr_app( temparr2, &temp2 );
+			temp2 = uni_strdup( "-o" );
+			uni_arr_app( temparr2, &temp2 );
+			args = uni_arr_conc( temparr2, temparr, NULL );
+			uni_arr_fini( temparr2 );
+			uni_strfreev( (char**)temparr );
+			temp2 = NULL;
+			uni_arr_app( args, &temp2 );
+			argv = uni_arr_make( args );
+			uni_arr_fini( args );
+
+			excall( "arm-none-eabi-as", argv );
+		}
+	}
+
+	/* TODO: Remove other temporary files */
 
 	return 0;
 }
