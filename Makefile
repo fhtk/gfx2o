@@ -29,7 +29,7 @@ LIBDIRS   :=
 # 3PLIBDIR is the base directory
 # 3PLIBS is the folder names in the base directory for each library
 3PLIBDIR := 3rdparty
-3PLIBS   := uni
+3PLIBS   := uni mangledeggs
 
 # frameworks (macOS target only)
 FWORKS :=
@@ -48,9 +48,6 @@ TES_CFILES   :=
 TES_HFILES   :=
 TES_CPPFILES :=
 TES_HPPFILES :=
-
-# force C++ linker because of 3rd-party library
-CCLD := $(CXX)
 
 # this defines all our usual targets
 include etc/targets.mk
