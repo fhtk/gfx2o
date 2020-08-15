@@ -55,7 +55,7 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 	struct gfxprops out;
 	char** spl;
 	char tmpch;
-	u32 spl_sz, tmpsz, tmpsz_wpal, i, fac, palsz;
+	u32 spl_sz, tmpsz, sz_wopal, sz_wpal, i, fac, palsz;
 
 	spl    = uni_strsplit( fname, ".", -1 );
 	spl_sz = uni_strlenv( spl );
@@ -68,22 +68,22 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 	/* zero out the output first */
 	uni_memset( &out, 0, sizeof( struct gfxprops ) );
 
-	tmpsz = uni_strlen( spl[spl_sz - 2] );
+	sz_wopal = uni_strlen( spl[spl_sz - 2] );
 	/* this is saved so we know how long the string with palette count is
 	 */
-	tmpsz_wpal = tmpsz;
+	sz_wpal = sz_wopal;
 
 	/* reduce until no more numbers are left on the end
 	 * these numbers, if present, explicitly specify palette count */
-	for( i = 0; spl[spl_sz - 2][tmpsz - 1] >= 0x30 &&
-		spl[spl_sz - 2][tmpsz - 1] <= 0x39;
+	for( i = 0; spl[spl_sz - 2][sz_wopal - 1] >= 0x30 &&
+		spl[spl_sz - 2][sz_wopal - 1] <= 0x39;
 		++i )
 	{
-		--tmpsz;
+		--sz_wopal;
 	}
 
 	/* parse the output selector chars */
-	for( i = 0; i < tmpsz; ++i )
+	for( i = 0; i < sz_wopal; ++i )
 	{
 		char doneletter = spl[spl_sz - 2][i];
 
@@ -108,7 +108,7 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 			break;
 		}
 
-		if( doneletter && i < tmpsz - 1 && spl[spl_sz - 2][i + 1] )
+		if( doneletter && i < sz_wopal - 1 && spl[spl_sz - 2][i + 1] )
 		{
 			switch( doneletter )
 			{
@@ -127,20 +127,6 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 		}
 	}
 
-	fac   = 1;
-	palsz = 0;
-
-	/* parse the palette size, if present */
-	for( i = tmpsz_wpal - 1; i > 0 && i >= tmpsz; --i )
-	{
-		palsz += ( spl[spl_sz - 2][i] - 0x30 ) * fac;
-
-		fac *= 10;
-	}
-
-	/* if there was no explicit palette size, default it */
-	out.palsz = palsz == 0 ? 255 : palsz - 1;
-
 	/* check size first */
 	tmpsz = uni_strlen( spl[spl_sz - 3] );
 
@@ -158,6 +144,22 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 	{
 		return ERR_PARSE_EXT_INVALID_BPP;
 	}
+
+	fac   = 1;
+	palsz = 0;
+
+	/* parse the palette size, if present */
+	for( i = sz_wopal - 1; i > 0 && i >= sz_wpal; --i )
+	{
+		palsz += ( spl[spl_sz - 2][i] - 0x30 ) * fac;
+
+		fac *= 10;
+	}
+
+	/* if there was no explicit palette size, default it */
+	out.palsz = palsz != 0
+		? palsz - 1
+		: out.bpp == BPP_1 ? 1 : out.bpp == BPP_4 ? 15 : 255;
 
 	/* get form (bitmap or tile) */
 	switch( spl[spl_sz - 3][1] )
@@ -251,8 +253,8 @@ static char** mkgritflags(
 					tmp[5] = '\0';
 					tmp[4] = (char)( ( palsz % 10 ) +
 						0x30 );
-					tmp[3] = (char)( ( palsz / 10 ) +
-						0x30 );
+					tmp[3] = (char)( palsz -
+						( palsz % 10 ) + 0x30 );
 				}
 			}
 			else
@@ -260,10 +262,14 @@ static char** mkgritflags(
 				/* decimal is annoying */
 				tmp[6] = '\0';
 				tmp[5] = (char)( ( palsz % 10 ) + 0x30 );
-				tmp[4] = (char)( ( palsz % 100 ) -
-					( palsz / 10 ) + 0x30 );
-				tmp[3] = (char)( palsz - ( palsz / 100 ) +
+				tmp[4] = (char)( ( ( ( palsz % 100 ) -
+							   ( palsz % 10 ) ) /
+							 10 ) +
 					0x30 );
+				tmp[3] =
+					(char)( ( ( palsz - ( palsz % 100 ) ) /
+							100 ) +
+						0x30 );
 			}
 
 			temp = uni_strdup( tmp );
