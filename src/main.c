@@ -253,8 +253,11 @@ static char** mkgritflags(
 					tmp[5] = '\0';
 					tmp[4] = (char)( ( palsz % 10 ) +
 						0x30 );
-					tmp[3] = (char)( palsz -
-						( palsz % 10 ) + 0x30 );
+					tmp[3] = (char)( ( palsz -
+								 ( palsz %
+									 10 ) /
+									 10 ) +
+						0x30 );
 				}
 			}
 			else
