@@ -17,9 +17,9 @@
 #include "excall.h"
 
 static const char* helptxt =
-   "PNG graphics to object code converter\n\nUsage:\n    \n    gfx2obj <input> [output]\n    Takes a PNG file <input>, runs it through grit, tags it with\n    the necessary symbols, and outputs an object code file.\n\ngfx2obj takes all of its metadata hints from the file\nextension provided. It uses this format (regex):\n\n    \\.[148](tn?|b)\\.(il?)?(ml?)?(pl?([0-9]{1,3})?)?\\.png$\n\nThe bpp portion specifies its bits-per-pixel, 4 or 8.\nThe next portion specifies what form the image takes on the GBA:\n";
+	"PNG graphics to object code converter\n\nUsage:\n    \n    gfx2obj <input> [output]\n    Takes a PNG file <input>, runs it through grit, tags it with\n    the necessary symbols, and outputs an object code file.\n\ngfx2obj takes all of its metadata hints from the file\nextension provided. It uses this format (regex):\n\n    \\.[148](tn?|b)\\.(il?)?(ml?)?(pl?([0-9]{1,3})?)?\\.png$\n\nThe bpp portion specifies its bits-per-pixel, 4 or 8.\nThe next portion specifies what form the image takes on the GBA:\n";
 static const char* helptxt2 =
-   "tile or bitmap based. If \"tn\" is used, no tile reduction is done.\nThe next part specifies what kind of outputs to emit (i for\nimage/tileset, m for tilemap, and p for palette), and whether to\ncompress each output (l suffix, using LZ77). The optional numeric\nspecifies exactly how many colours the palette should have, instead\nof the maximum for the given bit depth.\n";
+	"tile or bitmap based. If \"tn\" is used, no tile reduction is done.\nThe next part specifies what kind of outputs to emit (i for\nimage/tileset, m for tilemap, and p for palette), and whether to\ncompress each output (l suffix, using LZ77). The optional numeric\nspecifies exactly how many colours the palette should have, instead\nof the maximum for the given bit depth.\n";
 
 enum
 {
@@ -55,7 +55,7 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 	struct gfxprops out;
 	char** spl;
 	char tmpch;
-	u32 spl_sz, tmpsz, tmpsz_wpal, i, fac;
+	u32 spl_sz, tmpsz, tmpsz_wpal, i, fac, palsz;
 
 	spl    = uni_strsplit( fname, ".", -1 );
 	spl_sz = uni_strlenv( spl );
@@ -72,10 +72,12 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 
 	/* reduce until no more numbers are left on the end
 	 * these numbers, if present, explicitly specify palette count */
-	for( tmpsz_wpal = tmpsz; spl[spl_sz - 2][tmpsz - 1] >= 0x30 ||
-	     spl[spl_sz - 2][tmpsz - 1] <= 0x39;
-	     --tmpsz )
-		;
+	for( i = 0; spl[spl_sz - 2][tmpsz - 1] >= 0x30 &&
+		spl[spl_sz - 2][tmpsz - 1] <= 0x39;
+		++i )
+	{
+		--tmpsz;
+	}
 
 	/* parse the output selector chars */
 	for( i = 0; i < tmpsz; ++i )
@@ -122,22 +124,19 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 		}
 	}
 
-	fac       = 1;
-	out.palsz = 0;
+	fac   = 1;
+	palsz = 0;
 
 	/* parse the palette size, if present */
-	for( i = tmpsz_wpal - 1; i >= tmpsz; --i )
+	for( i = tmpsz_wpal - 1; i > 0 && i >= tmpsz; --i )
 	{
-		out.palsz += ( spl[spl_sz - 2][i] - 0x30 ) * fac;
+		palsz += ( spl[spl_sz - 2][i] - 0x30 ) * fac;
 
 		fac *= 10;
 	}
 
 	/* if there was no explicit palette size, default it */
-	if( out.palsz == 0 )
-	{
-		out.palsz = 255;
-	}
+	out.palsz = palsz == 0 ? 255 : palsz - 1;
 
 	/* check size first */
 	tmpsz = uni_strlen( spl[spl_sz - 3] );
@@ -182,27 +181,26 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 	return 0;
 }
 
-static char** mkgritflags( struct gfxprops props, const char* oname )
+static char** mkgritflags(
+	struct gfxprops props, const char* iname, const char* oname )
 {
 	struct uni_arr* flags;
 	const char* temp;
 
-	flags = uni_arr_init( 0 );
+	flags = uni_arr_init( sizeof( char* ) );
 
 	if( props.img )
 	{
 		temp = uni_strdup( "-g" );
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.img_lz ? "-gzl" : "-gz!" );
-		uni_arr_app(
-		   flags, &temp );
+		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.tile ? "-gt" : "-gb" );
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.bpp == BPP_1
-		         ? "-gB1"
-		         : props.bpp == BPP_4 ? "-gB4" : "-gB8" );
-		uni_arr_app( flags,
-		   &temp );
+				? "-gB1"
+				: props.bpp == BPP_4 ? "-gB4" : "-gB8" );
+		uni_arr_app( flags, &temp );
 	}
 	else
 	{
@@ -215,19 +213,16 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 		temp = uni_strdup( "-m" );
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.map_lz ? "-mzl" : "-mz!" );
-		uni_arr_app(
-		   flags, &temp );
+		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.reduce ? "-mRtf" : "-mR!" );
-		uni_arr_app(
-		   flags, &temp );
+		uni_arr_app( flags, &temp );
 	}
 	else
 	{
 		temp = uni_strdup( "-m!" );
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.pal_lz ? "-pzl" : "-pz!" );
-		uni_arr_app(
-		   flags, &temp );
+		uni_arr_app( flags, &temp );
 	}
 
 	if( props.pal )
@@ -237,35 +232,35 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 
 		if( props.palsz > 0 )
 		{
+			u32 palsz = props.palsz + 1;
 			char* tmp = uni_alloc( sizeof( char ) * 7 );
 			uni_memcpy( tmp, "-pn", 3 );
 
-			if( props.palsz < 100 )
+			if( palsz < 100 )
 			{
-				if( props.palsz < 10 )
+				if( palsz < 10 )
 				{
 					tmp[4] = '\0';
-					tmp[3] = (char)( props.palsz + 0x30 );
+					tmp[3] = (char)( palsz + 0x30 );
 				}
 				else
 				{
 					tmp[5] = '\0';
-					tmp[4] = (char)( ( props.palsz % 10 ) +
-					   0x30 );
-					tmp[3] = (char)( props.palsz -
-					   ( props.palsz % 10 ) + 0x30 );
+					tmp[4] = (char)( ( palsz % 10 ) +
+						0x30 );
+					tmp[3] = (char)( ( palsz / 10 ) +
+						0x30 );
 				}
 			}
 			else
 			{
 				/* decimal is annoying */
 				tmp[6] = '\0';
-				tmp[5] = (char)( ( props.palsz % 10 ) + 0x30 );
-				tmp[4] = (char)( ( props.palsz % 100 ) -
-				   ( props.palsz % 10 ) + 0x30 );
-				tmp[3] = (char)( props.palsz -
-				   ( props.palsz % 100 ) -
-				   ( props.palsz % 10 ) + 0x30 );
+				tmp[5] = (char)( ( palsz % 10 ) + 0x30 );
+				tmp[4] = (char)( ( palsz % 100 ) -
+					( palsz / 10 ) + 0x30 );
+				tmp[3] = (char)( palsz - ( palsz / 100 ) +
+					0x30 );
 			}
 
 			temp = uni_strdup( tmp );
@@ -275,10 +270,10 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 		else
 		{
 			temp = uni_strdup( props.bpp == BPP_8
-			         ? "-pn256"
-			         : props.bpp == BPP_4 ? "-pn16" : "-pn2" );
-			uni_arr_app( flags,
-			   &temp );
+					? "-pn256"
+					: props.bpp == BPP_4 ? "-pn16"
+							     : "-pn2" );
+			uni_arr_app( flags, &temp );
 		}
 	}
 	else
@@ -297,12 +292,15 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 		const char* made;
 
 		str = uni_str_init( oname );
-		uni_str_app( str, ".bin" );
+		uni_str_prep( str, "-o" );
 		made = uni_str_make( str );
 		uni_str_fini( str );
 		/* this alloc now belongs to flags */
 		uni_arr_app( flags, &made );
 	}
+
+	temp = uni_strdup( iname );
+	uni_arr_prep( flags, &temp );
 
 	temp = uni_strdup( "grit" );
 	uni_arr_prep( flags, &temp );
@@ -320,7 +318,8 @@ static char** mkgritflags( struct gfxprops props, const char* oname )
 	}
 }
 
-const char* bin2asmcall( const char* file, const char* sym, const char* midsuf )
+const char* bin2asmcall(
+	const char* file, const char* sym, const char* midsuf )
 {
 	struct uni_str* str;
 	struct uni_arr* arr;
@@ -328,7 +327,7 @@ const char* bin2asmcall( const char* file, const char* sym, const char* midsuf )
 	const char* ret;
 	char* const* args;
 
-	arr = uni_arr_init( 0 );
+	arr = uni_arr_init( sizeof( char* ) );
 
 	temp = uni_strdup( "bin2asm" );
 	uni_arr_app( arr, &temp );
@@ -346,7 +345,7 @@ const char* bin2asmcall( const char* file, const char* sym, const char* midsuf )
 	uni_str_app( str, ".s" );
 
 	temp = uni_str_make( str );
-	ret = uni_strdup( temp );
+	ret  = uni_strdup( temp );
 	uni_arr_app( arr, &temp );
 	uni_str_fini( str );
 
@@ -369,13 +368,24 @@ const char* bin2asmcall( const char* file, const char* sym, const char* midsuf )
 	return ret;
 }
 
-#define ENSURE(_cnd, _msg) \
-	do{if(_cnd){}else{fprintf(stderr,"%s\n",(_msg));return 127;}}while(0)
+#define ENSURE( _cnd, _msg ) \
+	do \
+	{ \
+		if( _cnd ) \
+		{ \
+		} \
+		else \
+		{ \
+			fprintf( stderr, "%s\n", ( _msg ) ); \
+			return 127; \
+		} \
+	} while( 0 )
 
 int main( int ac, const char* av[] )
 {
 	const char* iname;
 	const char* oname;
+	const char* tmpname;
 	const char* temp;
 	struct gfxprops props;
 	const char* const cwd = getcwd( NULL, 0 );
@@ -383,9 +393,9 @@ int main( int ac, const char* av[] )
 	ENSURE( cwd != NULL, "Cannot get current working directory" );
 
 	if( ac <= 1 ||
-	   ( ac == 2 &&
-	      ( uni_strequ( av[1], "--help" ) ||
-	         uni_strequ( av[1], "-h" ) ) ) )
+		( ac == 2 &&
+			( uni_strequ( av[1], "--help" ) ||
+				uni_strequ( av[1], "-h" ) ) ) )
 	{
 		printf( "%s%s", helptxt, helptxt2 );
 
@@ -399,7 +409,9 @@ int main( int ac, const char* av[] )
 	if( uni_strstr( av[1], cwd ) == NULL )
 	{
 		char** tmp;
-		ENSURE( uni_strpre( av[1], "data/" ), "Current working directory is not present in path and the path given\ndoes not start with 'data/' (cf. ADP 1). Cannot deduce the\nsymbol name." );
+
+		ENSURE( uni_strpre( av[1], "data/" ),
+			"Current working directory is not present in path and the path given\ndoes not start with 'data/' (cf. ADP 1). Cannot deduce the\nsymbol name." );
 
 		tmp = uni_strsplit( av[1], "data/", 2 );
 		ENSURE( uni_strlenv( tmp ) == 2, "Invalid input file path" );
@@ -415,14 +427,38 @@ int main( int ac, const char* av[] )
 		iname = uni_strdup( tmp[1] );
 		uni_strfreev( tmp );
 
-		if(uni_strpre( iname, "data/" ))
+		if( uni_strpre( iname, "data/" ) )
 		{
 			tmp = uni_strsplit( iname, "data/", 2 );
 			uni_free( (char*)iname );
-			ENSURE( uni_strlenv( tmp ) == 2, "Invalid input file path" );
+			ENSURE( uni_strlenv( tmp ) == 2,
+				"Invalid input file path" );
 			iname = uni_strdup( tmp[1] );
 			uni_strfreev( tmp );
 		}
+	}
+
+	if( ac < 3 )
+	{
+		char** tmp;
+		struct uni_str* tmpstr;
+
+		tmp    = uni_strsplit( av[1], ".png", 2 );
+		tmpstr = uni_str_init( tmp[0] );
+		uni_str_app( tmpstr, ".o" );
+		oname = uni_str_make( tmpstr );
+		uni_str_fini( tmpstr );
+		uni_strfreev( tmp );
+	}
+	else if( ac == 3 )
+	{
+		oname = uni_strdup( av[2] );
+	}
+	else
+	{
+		fprintf( stderr, "Too many arguments provided: %u\n", ac );
+
+		return 127;
 	}
 
 	/* resolve the output props */
@@ -431,8 +467,12 @@ int main( int ac, const char* av[] )
 
 		r = parse_ext( iname, &props );
 
-#define EXT_ERR(_msg) \
-	do{fprintf(stderr, "Bad file extension: %s\n", (_msg));return 127;}while(0)
+#define EXT_ERR( _msg ) \
+	do \
+	{ \
+		fprintf( stderr, "Bad file extension: %s\n", ( _msg ) ); \
+		return 127; \
+	} while( 0 )
 
 		switch( r )
 		{
@@ -458,14 +498,14 @@ int main( int ac, const char* av[] )
 		struct uni_str* tmpstr;
 		const char* temp2;
 
-		oname = uni_strdup( tmpnam( NULL ) );
+		tmpname = uni_strdup( tmpnam( NULL ) );
 
-		tmpstr = uni_str_init( oname );
+		tmpstr = uni_str_init( tmpname );
 		uni_str_app( tmpstr, ".bin" );
 		temp2 = uni_str_make( tmpstr );
 		uni_str_fini( tmpstr );
 
-		gritopts = mkgritflags( props, temp2 );
+		gritopts = mkgritflags( props, av[1], temp2 );
 		uni_free( (char*)temp2 );
 		excall( "grit", gritopts );
 	}
@@ -476,55 +516,82 @@ int main( int ac, const char* av[] )
 		const char** temparr;
 		struct uni_arr* sfiles;
 
-		temparr = (const char**)uni_strsplit( iname, "/", -1 );
-		sfiles = uni_arr_init( 0 );
+		temparr = (const char**)uni_strsplit( iname, ".", -1 );
+		temp2   = (const char*)uni_strdup( temparr[0] );
+		uni_strfreev( (char**)temparr );
+		temparr = (const char**)uni_strsplit( temp2, "/", -1 );
+		uni_free( (char*)temp2 );
+		sfiles = uni_arr_init( sizeof( char* ) );
 
-		if(props.img)
+		if( props.img )
 		{
-			eg_mangle( temparr, props.img_lz ? "imgl" : "img", &temp );
-			temp2 = bin2asmcall( oname, temp, ".img" );
+			eg_mangle( temparr,
+				props.img_lz ? "imgl" : "img",
+				&temp );
+			temp2 = bin2asmcall( tmpname, temp, ".img" );
 			uni_arr_app( sfiles, &temp2 );
 			uni_free( (char*)temp );
 		}
 
-		if(props.map)
+		if( props.map )
 		{
-			eg_mangle( temparr, props.map_lz ? "mapl" : "map", &temp );
-			temp2 = bin2asmcall( oname, temp, ".map" );
+			eg_mangle( temparr,
+				props.map_lz ? "mapl" : "map",
+				&temp );
+			temp2 = bin2asmcall( tmpname, temp, ".map" );
 			uni_arr_app( sfiles, &temp2 );
 			uni_free( (char*)temp );
 		}
 
-		if(props.pal)
+		if( props.pal )
 		{
-			eg_mangle( temparr, props.pal_lz ? "pall" : "pal", &temp );
-			temp2 = bin2asmcall( oname, temp, ".pal" );
+			eg_mangle( temparr,
+				props.pal_lz ? "pall" : "pal",
+				&temp );
+			temp2 = bin2asmcall( tmpname, temp, ".pal" );
 			uni_arr_app( sfiles, &temp2 );
 			uni_free( (char*)temp );
 		}
+
+		temp2 = NULL;
+		uni_arr_app( sfiles, &temp2 );
+
+		uni_strfreev( (char**)temparr );
+		temparr = uni_arr_make( sfiles );
+		uni_arr_fini( sfiles );
 
 		/* call the assembler */
 		{
 			struct uni_arr* args;
-			struct uni_arr* temparr2;
 			char* const* argv;
+			ptri i;
 
-			temparr2 = uni_arr_init( 0 );
+			args  = uni_arr_init( sizeof( char* ) );
 			temp2 = uni_strdup( "arm-none-eabi-as" );
-			uni_arr_app( temparr2, &temp2 );
+			uni_arr_app( args, &temp2 );
 			temp2 = uni_strdup( "-mcpu=arm7tdmi" );
-			uni_arr_app( temparr2, &temp2 );
+			uni_arr_app( args, &temp2 );
+			temp2 = uni_strdup( "-march=armv4t" );
+			uni_arr_app( args, &temp2 );
 			temp2 = uni_strdup( "-o" );
-			uni_arr_app( temparr2, &temp2 );
-			args = uni_arr_conc( temparr2, temparr, NULL );
-			uni_arr_fini( temparr2 );
-			uni_strfreev( (char**)temparr );
+			uni_arr_app( args, &temp2 );
+			temp2 = uni_strdup( oname );
+			uni_arr_app( args, &temp2 );
+
+			for( i = 0; temparr[i] != NULL; ++i )
+			{
+				uni_arr_app( args, (char**)( &temparr[i] ) );
+			}
+
 			temp2 = NULL;
 			uni_arr_app( args, &temp2 );
+
 			argv = uni_arr_make( args );
 			uni_arr_fini( args );
 
 			excall( "arm-none-eabi-as", argv );
+
+			uni_strfreev( (char**)argv );
 		}
 	}
 
