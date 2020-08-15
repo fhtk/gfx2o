@@ -200,6 +200,10 @@ static char** mkgritflags(
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.img_lz ? "-gzl" : "-gz!" );
 		uni_arr_app( flags, &temp );
+		temp = uni_strdup( "-aw256" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( "-ah256" );
+		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.tile ? "-gt" : "-gb" );
 		uni_arr_app( flags, &temp );
 		temp = uni_strdup( props.bpp == BPP_1
@@ -226,13 +230,13 @@ static char** mkgritflags(
 	{
 		temp = uni_strdup( "-m!" );
 		uni_arr_app( flags, &temp );
-		temp = uni_strdup( props.pal_lz ? "-pzl" : "-pz!" );
-		uni_arr_app( flags, &temp );
 	}
 
 	if( props.pal )
 	{
 		temp = uni_strdup( "-p" );
+		uni_arr_app( flags, &temp );
+		temp = uni_strdup( props.pal_lz ? "-pzl" : "-pz!" );
 		uni_arr_app( flags, &temp );
 
 		if( props.palsz > 0 )
