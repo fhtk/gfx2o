@@ -65,6 +65,9 @@ static int parse_ext( const char* fname, struct gfxprops* o )
 		return ERR_PARSE_EXT_TOO_FEW_DOTS;
 	}
 
+	/* zero out the output first */
+	uni_memset( &out, 0, sizeof( struct gfxprops ) );
+
 	tmpsz = uni_strlen( spl[spl_sz - 2] );
 	/* this is saved so we know how long the string with palette count is
 	 */
